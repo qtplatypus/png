@@ -1,7 +1,8 @@
  module PNG () where
 
 import Control.Arrow
-import Data.ByteString.Lazy as B (ByteString,pack,splitAt,empty) 
+import Data.ByteString.Lazy as B (ByteString,pack,splitAt,empty,head) 
+import Data.Bits
 import Data.Char
 import Data.Word
 import Data.Binary
@@ -42,4 +43,8 @@ checkCRC32 (chunkBody,chunkCRC) = if ((crc32 chunkBody) == (decode chunkCRC))
            then Right chunkBody
            else Left  chunkBody
 
-test = checkSignature >>> right (chunkify >>> map checkCRC32)
+critical = B.head >>> (.&.) 0x20 >>> (==) 0
+
+removeBadAncillery = filter (either critical (const True))
+
+test = checkSignature >>> right (chunkify >>> map checkCRC32 >>> removeBadAncillery)
